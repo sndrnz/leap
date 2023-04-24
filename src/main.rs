@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use std::env;
+use std::path::Path;
 use std::process::exit;
 use std::{fs::File, io::Read};
 
@@ -38,12 +40,20 @@ fn main() {
     // parse file: "<name> <path>\n"
     let leaprc_lines = leaprc_content.lines();
 
-    let mut leaprc_map = std::collections::HashMap::new();
+    let mut leaprc_map = HashMap::new();
 
     for line in leaprc_lines {
-        let mut line_split = line.split_whitespace();
-        let name = line_split.next().unwrap();
-        let path = line_split.next().unwrap();
+        if line.starts_with('#') {
+            continue;
+        }
+        let line_split: Vec<&str> = line.splitn(2, ' ').collect();
+
+        if line_split.len() != 2 {
+            continue;
+        }
+
+        let name = line_split[0].to_string();
+        let path = line_split[1].to_string();
 
         leaprc_map.insert(name, path);
     }
@@ -63,10 +73,16 @@ fn main() {
     }
 
     // get command path
-    let path = leaprc_map.get(path_name.as_str()).unwrap_or_else(|| {
-        eprintln!("Path not found: {}", path_name);
+    let path = leaprc_map.get(&path_name).unwrap_or_else(|| {
+        eprintln!("Name not found: {}", path_name);
         exit(1);
     });
+
+    // check if path exists
+    if !Path::new(path).exists() {
+        eprintln!("Path doesn't exist: {}", path);
+        exit(1);
+    }
 
     // print command path
     println!("{}", path);
